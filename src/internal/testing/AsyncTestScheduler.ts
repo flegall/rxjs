@@ -7,6 +7,7 @@ import { SubscriptionLog } from './SubscriptionLog';
 import { Subscription } from '../Subscription';
 import { VirtualTimeScheduler, VirtualAction } from '../scheduler/VirtualTimeScheduler';
 import { AsyncScheduler } from '../scheduler/AsyncScheduler';
+import { TestScheduler } from './TestScheduler';
 
 const defaultMaxFrame: number = 750;
 
@@ -29,14 +30,6 @@ export type observableToBeFn = (marbles: string, values?: any, errorValue?: any)
 export type subscriptionLogsToBeFn = (marbles: string | string[]) => void;
 
 export class AsyncTestScheduler extends VirtualTimeScheduler {
-  /**
-   * The number of virtual time units each character in a marble diagram represents. If
-   * the test scheduler is being used in "run mode", via the `run` method, this is temporarly
-   * set to `1` for the duration of the `run` block, then set back to whatever value it was.
-   * @nocollapse
-   */
-  static frameTimeFactor = 10;
-
   /**
    * @deprecated remove in v8. Not for public use.
    */
@@ -71,7 +64,7 @@ export class AsyncTestScheduler extends VirtualTimeScheduler {
     if (indexOf === -1) {
       throw new Error('marble diagram for time should have a completion marker "|"');
     }
-    return indexOf * AsyncTestScheduler.frameTimeFactor;
+    return indexOf * TestScheduler.frameTimeFactor;
   }
 
   /**
@@ -86,7 +79,7 @@ export class AsyncTestScheduler extends VirtualTimeScheduler {
     if (marbles.indexOf('!') !== -1) {
       throw new Error('cold observable cannot have unsubscription marker "!"');
     }
-    const messages = AsyncTestScheduler.parseMarbles(marbles, values, error, undefined, this.runMode);
+    const messages = TestScheduler.parseMarbles(marbles, values, error, undefined, this.runMode);
     const cold = new ColdObservable<T>(messages, this);
     this.coldObservables.push(cold);
     return cold;
@@ -101,7 +94,7 @@ export class AsyncTestScheduler extends VirtualTimeScheduler {
     if (marbles.indexOf('!') !== -1) {
       throw new Error('hot observable cannot have unsubscription marker "!"');
     }
-    const messages = AsyncTestScheduler.parseMarbles(marbles, values, error, undefined, this.runMode);
+    const messages = TestScheduler.parseMarbles(marbles, values, error, undefined, this.runMode);
     const subject = new HotObservable<T>(messages, this);
     this.hotObservables.push(subject);
     return subject;
@@ -124,7 +117,7 @@ export class AsyncTestScheduler extends VirtualTimeScheduler {
     subscriptionMarbles: string | null = null): ({ toBe: observableToBeFn }) {
     const actual: TestMessage[] = [];
     const flushTest: FlushableTest = { actual, ready: false };
-    const subscriptionParsed = AsyncTestScheduler.parseMarblesAsSubscriptions(subscriptionMarbles, this.runMode);
+    const subscriptionParsed = TestScheduler.parseMarblesAsSubscriptions(subscriptionMarbles, this.runMode);
     const subscriptionFrame = subscriptionParsed.subscribedFrame === Number.POSITIVE_INFINITY ?
       0 : subscriptionParsed.subscribedFrame;
     const unsubscriptionFrame = subscriptionParsed.unsubscribedFrame;
@@ -155,7 +148,7 @@ export class AsyncTestScheduler extends VirtualTimeScheduler {
     return {
       toBe(marbles: string, values?: any, errorValue?: any) {
         flushTest.ready = true;
-        flushTest.expected = AsyncTestScheduler.parseMarbles(marbles, values, errorValue, true, runMode);
+        flushTest.expected = TestScheduler.parseMarbles(marbles, values, errorValue, true, runMode);
       }
     };
   }
@@ -169,7 +162,7 @@ export class AsyncTestScheduler extends VirtualTimeScheduler {
         const marblesArray: string[] = (typeof marbles === 'string') ? [marbles] : marbles;
         flushTest.ready = true;
         flushTest.expected = marblesArray.map(marbles =>
-          AsyncTestScheduler.parseMarblesAsSubscriptions(marbles, runMode)
+          TestScheduler.parseMarblesAsSubscriptions(marbles, runMode)
         );
       }
     };
@@ -191,220 +184,12 @@ export class AsyncTestScheduler extends VirtualTimeScheduler {
       return true;
     });
   }
-
-  /** @nocollapse */
-  static parseMarblesAsSubscriptions(marbles: string | null, runMode = false): SubscriptionLog {
-    if (typeof marbles !== 'string') {
-      return new SubscriptionLog(Number.POSITIVE_INFINITY);
-    }
-    const len = marbles.length;
-    let groupStart = -1;
-    let subscriptionFrame = Number.POSITIVE_INFINITY;
-    let unsubscriptionFrame = Number.POSITIVE_INFINITY;
-    let frame = 0;
-
-    for (let i = 0; i < len; i++) {
-      let nextFrame = frame;
-      const advanceFrameBy = (count: number) => {
-        nextFrame += count * this.frameTimeFactor;
-      };
-      const c = marbles[i];
-      switch (c) {
-        case ' ':
-          // Whitespace no longer advances time
-          if (!runMode) {
-            advanceFrameBy(1);
-          }
-          break;
-        case '-':
-          advanceFrameBy(1);
-          break;
-        case '(':
-          groupStart = frame;
-          advanceFrameBy(1);
-          break;
-        case ')':
-          groupStart = -1;
-          advanceFrameBy(1);
-          break;
-        case '^':
-          if (subscriptionFrame !== Number.POSITIVE_INFINITY) {
-            throw new Error('found a second subscription point \'^\' in a ' +
-              'subscription marble diagram. There can only be one.');
-          }
-          subscriptionFrame = groupStart > -1 ? groupStart : frame;
-          advanceFrameBy(1);
-          break;
-        case '!':
-          if (unsubscriptionFrame !== Number.POSITIVE_INFINITY) {
-            throw new Error('found a second subscription point \'^\' in a ' +
-              'subscription marble diagram. There can only be one.');
-          }
-          unsubscriptionFrame = groupStart > -1 ? groupStart : frame;
-          break;
-        default:
-          // time progression syntax
-          if (runMode && c.match(/^[0-9]$/)) {
-            // Time progression must be preceeded by at least one space
-            // if it's not at the beginning of the diagram
-            if (i === 0 || marbles[i - 1] === ' ') {
-              const buffer = marbles.slice(i);
-              const match = buffer.match(/^([0-9]+(?:\.[0-9]+)?)(ms|s|m) /);
-              if (match) {
-                i += match[0].length - 1;
-                const duration = parseFloat(match[1]);
-                const unit = match[2];
-                let durationInMs: number;
-
-                switch (unit) {
-                  case 'ms':
-                    durationInMs = duration;
-                    break;
-                  case 's':
-                    durationInMs = duration * 1000;
-                    break;
-                  case 'm':
-                    durationInMs = duration * 1000 * 60;
-                    break;
-                  default:
-                    break;
-                }
-
-                advanceFrameBy(durationInMs! / this.frameTimeFactor);
-                break;
-              }
-            }
-          }
-
-          throw new Error('there can only be \'^\' and \'!\' markers in a ' +
-            'subscription marble diagram. Found instead \'' + c + '\'.');
-      }
-
-      frame = nextFrame;
-    }
-
-    if (unsubscriptionFrame < 0) {
-      return new SubscriptionLog(subscriptionFrame);
-    } else {
-      return new SubscriptionLog(subscriptionFrame, unsubscriptionFrame);
-    }
-  }
-
-  /** @nocollapse */
-  static parseMarbles(marbles: string,
-    values?: any,
-    errorValue?: any,
-    materializeInnerObservables: boolean = false,
-    runMode = false): TestMessage[] {
-    if (marbles.indexOf('!') !== -1) {
-      throw new Error('conventional marble diagrams cannot have the ' +
-        'unsubscription marker "!"');
-    }
-    const len = marbles.length;
-    const testMessages: TestMessage[] = [];
-    const subIndex = runMode ? marbles.replace(/^[ ]+/, '').indexOf('^') : marbles.indexOf('^');
-    let frame = subIndex === -1 ? 0 : (subIndex * -this.frameTimeFactor);
-    const getValue = typeof values !== 'object' ?
-      (x: any) => x :
-      (x: any) => {
-        // Support Observable-of-Observables
-        if (materializeInnerObservables && values[x] instanceof ColdObservable) {
-          return values[x].messages;
-        }
-        return values[x];
-      };
-    let groupStart = -1;
-
-    for (let i = 0; i < len; i++) {
-      let nextFrame = frame;
-      const advanceFrameBy = (count: number) => {
-        nextFrame += count * this.frameTimeFactor;
-      };
-
-      let notification: Notification<any> | undefined;
-      const c = marbles[i];
-      switch (c) {
-        case ' ':
-          // Whitespace no longer advances time
-          if (!runMode) {
-            advanceFrameBy(1);
-          }
-          break;
-        case '-':
-          advanceFrameBy(1);
-          break;
-        case '(':
-          groupStart = frame;
-          advanceFrameBy(1);
-          break;
-        case ')':
-          groupStart = -1;
-          advanceFrameBy(1);
-          break;
-        case '|':
-          notification = Notification.createComplete();
-          advanceFrameBy(1);
-          break;
-        case '^':
-          advanceFrameBy(1);
-          break;
-        case '#':
-          notification = Notification.createError(errorValue || 'error');
-          advanceFrameBy(1);
-          break;
-        default:
-          // Might be time progression syntax, or a value literal
-          if (runMode && c.match(/^[0-9]$/)) {
-            // Time progression must be preceeded by at least one space
-            // if it's not at the beginning of the diagram
-            if (i === 0 || marbles[i - 1] === ' ') {
-              const buffer = marbles.slice(i);
-              const match = buffer.match(/^([0-9]+(?:\.[0-9]+)?)(ms|s|m) /);
-              if (match) {
-                i += match[0].length - 1;
-                const duration = parseFloat(match[1]);
-                const unit = match[2];
-                let durationInMs: number;
-
-                switch (unit) {
-                  case 'ms':
-                    durationInMs = duration;
-                    break;
-                  case 's':
-                    durationInMs = duration * 1000;
-                    break;
-                  case 'm':
-                    durationInMs = duration * 1000 * 60;
-                    break;
-                  default:
-                    break;
-                }
-
-                advanceFrameBy(durationInMs! / this.frameTimeFactor);
-                break;
-              }
-            }
-          }
-
-          notification = Notification.createNext(getValue(c));
-          advanceFrameBy(1);
-          break;
-      }
-
-      if (notification) {
-        testMessages.push({ frame: groupStart > -1 ? groupStart : frame, notification });
-      }
-
-      frame = nextFrame;
-    }
-    return testMessages;
-  }
-
+ 
   run<T>(callback: (helpers: RunHelpers) => T): T {
-    const prevFrameTimeFactor = AsyncTestScheduler.frameTimeFactor;
+    const prevFrameTimeFactor = TestScheduler.frameTimeFactor;
     const prevMaxFrames = this.maxFrames;
 
-    AsyncTestScheduler.frameTimeFactor = 1;
+    TestScheduler.frameTimeFactor = 1;
     this.maxFrames = Number.POSITIVE_INFINITY;
     this.runMode = true;
     AsyncScheduler.delegate = this;
@@ -422,7 +207,7 @@ export class AsyncTestScheduler extends VirtualTimeScheduler {
       this.flush();
       return ret;
     } finally {
-      AsyncTestScheduler.frameTimeFactor = prevFrameTimeFactor;
+      TestScheduler.frameTimeFactor = prevFrameTimeFactor;
       this.maxFrames = prevMaxFrames;
       this.runMode = false;
       AsyncScheduler.delegate = undefined;
