@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 
 describe('flush spike', () => {
-  it('should run promises microtasks before setImmediate calls', () => {
+  it('should run promises microtasks before setImmediate calls', (done: MochaDone) => {
     let log: string[] = [];
 
     setImmediate(() => {
@@ -20,9 +20,9 @@ describe('flush spike', () => {
       });
 
 
-    return setImmediatePromise(() => {
+    setImmediatePromise(() => {
       expect(log).to.deep.equal(['p1', 'p2', 'p3', 'flush']);
-    });
+    }).then(() => done(), done);
 
     function setImmediatePromise(cb: () => void): Promise<void> {
       return new Promise((resolve, reject) => {
@@ -38,7 +38,7 @@ describe('flush spike', () => {
     }
   });
 
-  it('should run promises microtasks before setTimeout calls', () => {
+  it('should run promises microtasks before setTimeout calls', (done: MochaDone) => {
     let log: string[] = [];
 
     setTimeout(() => {
@@ -57,9 +57,9 @@ describe('flush spike', () => {
       });
 
 
-    return setTimeoutPromise(() => {
+    setTimeoutPromise(() => {
       expect(log).to.deep.equal(['p1', 'p2', 'p3', 'flush']);
-    });
+    }).then(() => done(), done);
 
     function setTimeoutPromise(cb: () => void): Promise<void> {
       return new Promise((resolve, reject) => {
@@ -75,7 +75,7 @@ describe('flush spike', () => {
     }
   });
 
-  it('should complete 3 promises microtasks before a started chain or 10 promises microtasks', () => {
+  it('should complete 3 promises microtasks before a started chain or 10 promises microtasks', (done: MochaDone) => {
     let log: string[] = [];
 
     executeAfterPromises(10, () => {
@@ -94,9 +94,9 @@ describe('flush spike', () => {
       });
 
 
-    return asyncExecuteAfterPromises(() => {
+    asyncExecuteAfterPromises(() => {
       expect(log).to.deep.equal(['p1', 'p2', 'p3', 'flush']);
-    });
+    }).then(() => done(), done);
 
     function executeAfterPromises(count: number, cb: () => void): void {
       let array = [];
