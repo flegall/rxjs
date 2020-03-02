@@ -168,7 +168,7 @@ export class AsyncTestScheduler extends VirtualTimeScheduler {
     };
   }
 
-  flush() {
+  flush(): void {
     const hotObservables = this.hotObservables;
     while (hotObservables.length > 0) {
       hotObservables.shift()!.setup();
@@ -185,7 +185,7 @@ export class AsyncTestScheduler extends VirtualTimeScheduler {
     });
   }
  
-  run<T>(callback: (helpers: RunHelpers) => T): T {
+  run<T>(callback: (helpers: RunHelpers) => Promise<T>): Promise<T> {
     const prevFrameTimeFactor = TestScheduler.frameTimeFactor;
     const prevMaxFrames = this.maxFrames;
 
@@ -202,15 +202,18 @@ export class AsyncTestScheduler extends VirtualTimeScheduler {
       expectObservable: this.expectObservable.bind(this),
       expectSubscriptions: this.expectSubscriptions.bind(this),
     };
-    try {
-      const ret = callback(helpers);
-      this.flush();
-      return ret;
-    } finally {
-      TestScheduler.frameTimeFactor = prevFrameTimeFactor;
-      this.maxFrames = prevMaxFrames;
-      this.runMode = false;
-      AsyncScheduler.delegate = undefined;
-    }
+    let returnValue: T;
+    return callback(helpers)
+      .then(ret => {
+        returnValue = ret;
+        return this.flush();
+      })
+      .then(() => returnValue)
+      .finally(() => {
+        TestScheduler.frameTimeFactor = prevFrameTimeFactor;
+        this.maxFrames = prevMaxFrames;
+        this.runMode = false;
+        AsyncScheduler.delegate = undefined;
+      });
   }
 }
