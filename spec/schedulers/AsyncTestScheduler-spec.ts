@@ -31,7 +31,7 @@ describe('AsyncTestScheduler', () => {
   });
 
   describe('createColdObservable()', () => {
-    it('should create a cold observable', () => {
+    it('should create a cold observable', (done: MochaDone) => {
       const expected = ['A', 'B'];
       const scheduler = new AsyncTestScheduler(null!);
       const source = scheduler.createColdObservable('--a---b--|', { a: 'A', b: 'B' });
@@ -39,13 +39,14 @@ describe('AsyncTestScheduler', () => {
       source.subscribe(x => {
         expect(x).to.equal(expected.shift());
       });
-      scheduler.flush();
-      expect(expected.length).to.equal(0);
+      scheduler.flush().then(() => {
+        expect(expected.length).to.equal(0);
+      }).then(() => done(), done);
     });
   });
 
   describe('createHotObservable()', () => {
-    it('should create a hot observable', () => {
+    it('should create a hot observable', (done: MochaDone) => {
       const expected = ['A', 'B'];
       const scheduler = new AsyncTestScheduler(null!);
       const source = scheduler.createHotObservable('--a---b--|', { a: 'A', b: 'B' });
@@ -53,8 +54,9 @@ describe('AsyncTestScheduler', () => {
       source.subscribe(x => {
         expect(x).to.equal(expected.shift());
       });
-      scheduler.flush();
-      expect(expected.length).to.equal(0);
+      scheduler.flush().then(() => {
+        expect(expected.length).to.equal(0);
+      }).then(() => done(), done);
     });
   });
   describe('AsyncTestScheduler.run()', () => {
@@ -187,7 +189,7 @@ describe('AsyncTestScheduler', () => {
         expect(testScheduler['flushTests'].length).to.equal(1);
         expect(testScheduler['actions'].length).to.equal(1);
 
-        flush();
+        await flush();
 
         expect(testScheduler['flushTests'].length).to.equal(0);
         expect(testScheduler['actions'].length).to.equal(0);
@@ -235,7 +237,7 @@ describe('AsyncTestScheduler', () => {
         expectObservable(cold('-x')).toBe('-x');
         expectObservable(cold('-y')).toBe('-y');
         const expectation = expectObservable(cold('-z'));
-        flush();
+        await flush();
         expectation.toBe('-q');
       }).then(() => done(new Error("Expected error")), () => done());
     });

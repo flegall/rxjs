@@ -168,20 +168,20 @@ export class AsyncTestScheduler extends VirtualTimeScheduler {
     };
   }
 
-  flush(): void {
-    const hotObservables = this.hotObservables;
-    while (hotObservables.length > 0) {
-      hotObservables.shift()!.setup();
-    }
-
-    super.flush();
-
-    this.flushTests = this.flushTests.filter(test => {
-      if (test.ready) {
-        this.assertDeepEqual(test.actual, test.expected);
-        return false;
+  flush(): Promise<void> {
+    return Promise.resolve().then(() => {
+      const hotObservables = this.hotObservables;
+      while (hotObservables.length > 0) {
+        hotObservables.shift()!.setup();
       }
-      return true;
+      super.flush();
+      this.flushTests = this.flushTests.filter(test => {
+        if (test.ready) {
+          this.assertDeepEqual(test.actual, test.expected);
+          return false;
+        }
+        return true;
+      });
     });
   }
  
