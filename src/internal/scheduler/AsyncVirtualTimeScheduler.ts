@@ -39,25 +39,22 @@ export class AsyncVirtualTimeScheduler extends AsyncScheduler {
    * clearing its queue.
    * @return {void}
    */
-  public async flush(): Promise<void> {
+  public flush(): Promise<void> {
     const {actions, maxFrames} = this;
     let error: any, action: AsyncAction<any> | undefined;
-
-    while ((action = actions[0]) && action.delay <= maxFrames) {
+    if ((action = actions[0]) && action.delay <= maxFrames) {
       actions.shift();
       this.frame = action.delay;
 
       if (error = action.execute(action.state, action.delay)) {
-        break;
+        while (action = actions.shift()) {
+          action.unsubscribe();
+        }
+        return Promise.reject(error);
       }
-      await this.executePromises();
-    }
-
-    if (error) {
-      while (action = actions.shift()) {
-        action.unsubscribe();
-      }
-      throw error;
+      return this.executePromises().then(() => this.flush());
+    } else {
+      return Promise.resolve();
     }
   }
 
