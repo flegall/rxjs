@@ -203,7 +203,8 @@ export class AsyncTestScheduler extends VirtualTimeScheduler {
       expectSubscriptions: this.expectSubscriptions.bind(this),
     };
     let returnValue: T;
-    return callback(helpers)
+    return Promise.resolve()
+      .then(() => callback(helpers))
       .then(ret => {
         returnValue = ret;
         return this.flush();

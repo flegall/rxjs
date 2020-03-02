@@ -191,10 +191,11 @@ describe('AsyncTestScheduler', () => {
 
         expect(testScheduler['flushTests'].length).to.equal(0);
         expect(testScheduler['actions'].length).to.equal(0);
-      }).then(() => done(), done);
-
-      expect(testScheduler['flushTests'].length).to.equal(0);
-      expect(testScheduler['actions'].length).to.equal(0);
+      }).then(() => {
+        expect(testScheduler['flushTests'].length).to.equal(0);
+        expect(testScheduler['actions'].length).to.equal(0);
+        done();
+      }, done);
     });
 
     it('should pass-through return values, e.g. Promises', (done) => {
