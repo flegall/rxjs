@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { SchedulerAction, AsyncVirtualAction, AsyncVirtualTimeScheduler } from 'rxjs';
+import { SchedulerAction, AsyncVirtualTimeScheduler, VirtualAction } from 'rxjs';
 
 /** @test {AsyncVirtualTimeScheduler} */
 describe('AsyncVirtualTimeScheduler', () => {
@@ -70,7 +70,7 @@ describe('AsyncVirtualTimeScheduler', () => {
       if (++count === 3) {
         return;
       }
-      const virtualAction = this as AsyncVirtualAction<string>;
+      const virtualAction = this as VirtualAction<string>;
       expect(virtualAction.delay).to.equal(expected.shift());
       this.schedule(state, virtualAction.delay);
     }, 100, 'test');
@@ -84,7 +84,7 @@ describe('AsyncVirtualTimeScheduler', () => {
     const v = new AsyncVirtualTimeScheduler();
     const messages: string[] = [];
 
-    const action: AsyncVirtualAction<string> = <AsyncVirtualAction<string>> v.schedule(
+    const action: VirtualAction<string> = <VirtualAction<string>> v.schedule(
       state => messages.push(state!),
       10,
       'first message'
@@ -99,7 +99,7 @@ describe('AsyncVirtualTimeScheduler', () => {
 
   it('should execute only those virtual actions that fall into the maxFrames timespan', function (done: MochaDone) {
     const MAX_FRAMES = 50;
-    const v = new AsyncVirtualTimeScheduler(AsyncVirtualAction, MAX_FRAMES);
+    const v = new AsyncVirtualTimeScheduler(VirtualAction, MAX_FRAMES);
     const messages: string[] = ['first message', 'second message', 'third message'];
 
     const actualMessages: string[] = [];
@@ -120,7 +120,7 @@ describe('AsyncVirtualTimeScheduler', () => {
 
   it('should pick up actions execution where it left off after reaching previous maxFrames limit', function (done: MochaDone) {
     const MAX_FRAMES = 50;
-    const v = new AsyncVirtualTimeScheduler(AsyncVirtualAction, MAX_FRAMES);
+    const v = new AsyncVirtualTimeScheduler(VirtualAction, MAX_FRAMES);
     const messages: string[] = ['first message', 'second message', 'third message'];
 
     const actualMessages: string[] = [];
@@ -207,7 +207,7 @@ describe('AsyncVirtualTimeScheduler', () => {
         if (++count === 3) {
           return;
         }
-        const virtualAction = this as AsyncVirtualAction<string>;
+        const virtualAction = this as VirtualAction<string>;
         expect(virtualAction.delay).to.equal(expected.shift());
         this.schedule(state, virtualAction.delay);
       });
