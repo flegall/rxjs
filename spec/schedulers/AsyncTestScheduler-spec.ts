@@ -221,7 +221,7 @@ describe('AsyncTestScheduler', () => {
 
       testScheduler.run(async () => {
         throw new Error('kaboom!');
-      }).then(() => done(new Error("Expected an error to be thrown")), (error: Error) => {
+      }).then(() => done(new Error('Expected an error to be thrown')), (error: Error) => {
         expect(error.message).to.equal('kaboom!');
         expect(AsyncTestScheduler['frameTimeFactor']).to.equal(frameTimeFactor);
         expect(testScheduler.maxFrames).to.equal(maxFrames);
@@ -239,7 +239,7 @@ describe('AsyncTestScheduler', () => {
         const expectation = expectObservable(cold('-z'));
         await flush();
         expectation.toBe('-q');
-      }).then(() => done(new Error("Expected error")), () => done());
+      }).then(() => done(new Error('Expected error')), () => done());
     });
 
     it('should allow testing Observable.fromPromise()', (done: MochaDone) => {

@@ -61,7 +61,7 @@ export class AsyncVirtualTimeScheduler extends AsyncScheduler {
     return new Promise(resolve => {
       setImmediate(() => {
         resolve();
-      })
+      });
     });
   }
 }

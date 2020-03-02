@@ -91,7 +91,7 @@ describe('AsyncVirtualTimeScheduler', () => {
     );
 
     action.schedule('second message', 10);
-    
+
     v.flush().then(() => {
       expect(messages).to.deep.equal(['second message']);
     }).then(() => done(), done);
@@ -148,7 +148,7 @@ describe('AsyncVirtualTimeScheduler', () => {
     const v = new AsyncVirtualTimeScheduler();
     const invoked: number[] = [];
     const invoke: any = (state: number) => {
-      Promise.resolve().then(() => {invoked.push(state)});
+      Promise.resolve().then(() => {invoked.push(state); });
     };
     v.schedule(invoke, 0, 1);
     v.schedule(invoke, 0, 2);
@@ -165,7 +165,7 @@ describe('AsyncVirtualTimeScheduler', () => {
     const v = new AsyncVirtualTimeScheduler();
     const invoked: number[] = [];
     const invoke: any = (state: number) => {
-      Promise.resolve().then(() => {invoked.push(state)});
+      Promise.resolve().then(() => {invoked.push(state); });
     };
     v.schedule(invoke, 0, 1);
     v.schedule(invoke, 100, 2);
@@ -183,7 +183,7 @@ describe('AsyncVirtualTimeScheduler', () => {
     const v = new AsyncVirtualTimeScheduler();
     const invoked: number[] = [];
     const invoke: any = (state: number) => {
-      Promise.resolve().then(() => {invoked.push(state);});
+      Promise.resolve().then(() => {invoked.push(state); });
     };
     v.schedule(invoke, 0, 1);
     v.schedule(invoke, 100, 2);
@@ -222,9 +222,9 @@ describe('AsyncVirtualTimeScheduler', () => {
     const v = new AsyncVirtualTimeScheduler();
     const invoked: number[] = [];
     const invokeSuccess: any = (state: number) => {
-      Promise.resolve().then(() => {invoked.push(state)});
+      Promise.resolve().then(() => {invoked.push(state); });
     };
-    const invokeError: any = () => {throw new Error("Error occured");}
+    const invokeError: any = () => {throw new Error('Error occured'); };
     v.schedule(invokeSuccess, 0, 1);
     v.schedule(invokeSuccess, 1, 2);
     v.schedule(invokeSuccess, 2, 3);
@@ -232,9 +232,9 @@ describe('AsyncVirtualTimeScheduler', () => {
     v.schedule(invokeSuccess, 4, 4);
 
     v.flush().then(() => {
-      done(new Error("Expected an error to occur "))
+      done(new Error('Expected an error to occur '));
     }, error => {
-      expect(error.message).to.equal("Error occured");
+      expect(error.message).to.equal('Error occured');
       expect(invoked).to.deep.equal([1, 2, 3]);
       done();
     });

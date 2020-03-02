@@ -101,8 +101,10 @@ export class AsyncTestScheduler extends AsyncVirtualTimeScheduler {
     return subject;
   }
 
-  private materializeInnerObservable(observable: Observable<any>,
-    outerFrame: number): TestMessage[] {
+  private materializeInnerObservable(
+    observable: Observable<any>,
+    outerFrame: number
+  ): TestMessage[] {
     const messages: TestMessage[] = [];
     observable.subscribe((value) => {
       messages.push({ frame: this.frame - outerFrame, notification: Notification.createNext(value) });
@@ -114,8 +116,10 @@ export class AsyncTestScheduler extends AsyncVirtualTimeScheduler {
     return messages;
   }
 
-  expectObservable(observable: Observable<any>,
-    subscriptionMarbles: string | null = null): ({ toBe: observableToBeFn }) {
+  expectObservable(
+    observable: Observable<any>,
+    subscriptionMarbles: string | null = null
+  ): ({ toBe: observableToBeFn }) {
     const actual: TestMessage[] = [];
     const flushTest: FlushableTest = { actual, ready: false };
     const subscriptionParsed = TestScheduler.parseMarblesAsSubscriptions(subscriptionMarbles, this.runMode);
@@ -186,7 +190,7 @@ export class AsyncTestScheduler extends AsyncVirtualTimeScheduler {
       });
     });
   }
- 
+
   run<T>(callback: (helpers: RunHelpers) => Promise<T>): Promise<T> {
     const prevFrameTimeFactor = TestScheduler.frameTimeFactor;
     const prevMaxFrames = this.maxFrames;

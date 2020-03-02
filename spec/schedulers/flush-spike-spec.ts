@@ -19,7 +19,6 @@ describe('flush spike', () => {
         return Promise.resolve();
       });
 
-
     setImmediatePromise(() => {
       expect(log).to.deep.equal(['p1', 'p2', 'p3', 'flush']);
     }).then(() => done(), done);
@@ -30,11 +29,11 @@ describe('flush spike', () => {
           try {
             cb();
           } catch (e) {
-            reject(e)
+            reject(e);
           }
           resolve();
-        })
-      })
+        });
+      });
     }
   });
 
@@ -56,7 +55,6 @@ describe('flush spike', () => {
         return Promise.resolve();
       });
 
-
     setTimeoutPromise(() => {
       expect(log).to.deep.equal(['p1', 'p2', 'p3', 'flush']);
     }).then(() => done(), done);
@@ -67,11 +65,11 @@ describe('flush spike', () => {
           try {
             cb();
           } catch (e) {
-            reject(e)
+            reject(e);
           }
           resolve();
-        })
-      })
+        });
+      });
     }
   });
 
@@ -92,7 +90,6 @@ describe('flush spike', () => {
         log.push('p3');
         return Promise.resolve();
       });
-
 
     asyncExecuteAfterPromises(() => {
       expect(log).to.deep.equal(['p1', 'p2', 'p3', 'flush']);
@@ -117,11 +114,11 @@ describe('flush spike', () => {
           try {
             cb();
           } catch (e) {
-            reject(e)
+            reject(e);
           }
           resolve();
-        })
-      })
+        });
+      });
     }
   });
 });
