@@ -5,7 +5,8 @@ import { HotObservable } from './HotObservable';
 import { TestMessage } from './TestMessage';
 import { SubscriptionLog } from './SubscriptionLog';
 import { Subscription } from '../Subscription';
-import { VirtualTimeScheduler, VirtualAction } from '../scheduler/VirtualTimeScheduler';
+import { VirtualAction } from '../scheduler/VirtualTimeScheduler';
+import { AsyncVirtualTimeScheduler } from '../scheduler/AsyncVirtualTimeScheduler';
 import { AsyncScheduler } from '../scheduler/AsyncScheduler';
 import { TestScheduler } from './TestScheduler';
 
@@ -29,7 +30,7 @@ interface FlushableTest {
 export type observableToBeFn = (marbles: string, values?: any, errorValue?: any) => void;
 export type subscriptionLogsToBeFn = (marbles: string | string[]) => void;
 
-export class AsyncTestScheduler extends VirtualTimeScheduler {
+export class AsyncTestScheduler extends AsyncVirtualTimeScheduler {
   /**
    * @deprecated remove in v8. Not for public use.
    */
@@ -174,7 +175,8 @@ export class AsyncTestScheduler extends VirtualTimeScheduler {
       while (hotObservables.length > 0) {
         hotObservables.shift()!.setup();
       }
-      super.flush();
+      return super.flush();
+    }).then(() => {
       this.flushTests = this.flushTests.filter(test => {
         if (test.ready) {
           this.assertDeepEqual(test.actual, test.expected);
