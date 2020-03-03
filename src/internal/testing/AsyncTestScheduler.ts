@@ -57,7 +57,7 @@ export class AsyncTestScheduler extends AsyncVirtualTimeScheduler {
    * @param assertDeepEqual A function to set up your assertion for your test harness
    */
   constructor(public assertDeepEqual: (actual: any, expected: any) => boolean | void,
-              executePromisesMicroTasks: () => Promise<void> = AsyncVirtualTimeSchedulerExecutePromisesStrategy.usingSetImmediate,
+              executePromisesMicroTasks: () => Promise<void> = AsyncVirtualTimeSchedulerExecutePromisesStrategy.usingSetImmediate(),
   ) {
     super(executePromisesMicroTasks, VirtualAction, defaultMaxFrame);
   }

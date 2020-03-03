@@ -104,7 +104,7 @@ describe('AsyncVirtualTimeScheduler', () => {
 
   it('should execute only those virtual actions that fall into the maxFrames timespan', function (done: MochaDone) {
     const MAX_FRAMES = 50;
-    const v = new AsyncVirtualTimeScheduler(AsyncVirtualTimeSchedulerExecutePromisesStrategy.usingSetImmediate, VirtualAction, MAX_FRAMES);
+    const v = new AsyncVirtualTimeScheduler(AsyncVirtualTimeSchedulerExecutePromisesStrategy.usingSetImmediate(), VirtualAction, MAX_FRAMES);
     const messages: string[] = ['first message', 'second message', 'third message'];
 
     const actualMessages: string[] = [];
@@ -125,7 +125,7 @@ describe('AsyncVirtualTimeScheduler', () => {
 
   it('should pick up actions execution where it left off after reaching previous maxFrames limit', function (done: MochaDone) {
     const MAX_FRAMES = 50;
-    const v = new AsyncVirtualTimeScheduler(AsyncVirtualTimeSchedulerExecutePromisesStrategy.usingSetImmediate, VirtualAction, MAX_FRAMES);
+    const v = new AsyncVirtualTimeScheduler(AsyncVirtualTimeSchedulerExecutePromisesStrategy.usingSetImmediate(), VirtualAction, MAX_FRAMES);
     const messages: string[] = ['first message', 'second message', 'third message'];
 
     const actualMessages: string[] = [];
@@ -247,7 +247,7 @@ describe('AsyncVirtualTimeScheduler', () => {
 
   it('should execute promise resolutions using setImmediate', (done: MochaDone) => {
     const v = new AsyncVirtualTimeScheduler(
-      AsyncVirtualTimeSchedulerExecutePromisesStrategy.usingSetImmediate
+      AsyncVirtualTimeSchedulerExecutePromisesStrategy.usingSetImmediate()
     );
     const invoked: number[] = [];
     const invoke: any = (state: number) => {
@@ -263,7 +263,7 @@ describe('AsyncVirtualTimeScheduler', () => {
 
   it('should execute promise resolutions using setTimeout', (done: MochaDone) => {
     const v = new AsyncVirtualTimeScheduler(
-      AsyncVirtualTimeSchedulerExecutePromisesStrategy.usingSetTimeout
+      AsyncVirtualTimeSchedulerExecutePromisesStrategy.usingSetTimeout()
     );
     const invoked: number[] = [];
     const invoke: any = (state: number) => {

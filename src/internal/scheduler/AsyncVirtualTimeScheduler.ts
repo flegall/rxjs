@@ -28,7 +28,7 @@ export class AsyncVirtualTimeScheduler extends AsyncScheduler {
    * @param SchedulerAction The type of Action to initialize when initializing actions during scheduling.
    * @param maxFrames The maximum number of frames to process before stopping. Used to prevent endless flush cycles.
    */
-  constructor(private executePromisesMicroTasks: () => Promise<void> = AsyncVirtualTimeSchedulerExecutePromisesStrategy.usingSetImmediate,
+  constructor(private executePromisesMicroTasks: () => Promise<void> = (AsyncVirtualTimeSchedulerExecutePromisesStrategy.usingSetImmediate()),
               SchedulerAction: typeof AsyncAction = VirtualAction as any,
               public maxFrames: number = Number.POSITIVE_INFINITY) {
     super(SchedulerAction, () => this.frame);
@@ -59,26 +59,30 @@ export class AsyncVirtualTimeScheduler extends AsyncScheduler {
   }
 }
 
-const executePromisesMicroTasksUsingSetImmediate: () => Promise<void> = () => {
+const executePromisesMicroTasksUsingSetImmediate: () => () => Promise<void> = () => {
   const nativeSetImmediate = typeof window !== `undefined` ?
     (window.setImmediate || undefined) :
     (global.setImmediate || undefined);
-  return new Promise(resolve => {
-    nativeSetImmediate(() => {
-      resolve();
+  return () => {
+    return new Promise(resolve => {
+      nativeSetImmediate(() => {
+        resolve();
+      });
     });
-  });
+  };
 };
 
-const executePromisesMicroTasksUsingSetTimeout: () => Promise<void> = () => {
+const executePromisesMicroTasksUsingSetTimeout: () => () => Promise<void> = () => {
   const nativeSetTimeout = typeof window !== `undefined` ?
     (window.setTimeout || undefined) :
     (global.setTimeout || undefined);
-  return new Promise(resolve => {
-    nativeSetTimeout(() => {
-      resolve();
-    }, 0);
-  });
+  return () => {
+    return new Promise(resolve => {
+      nativeSetTimeout(() => {
+        resolve();
+      }, 0);
+    });
+  };
 };
 
 const defaultPromisesChainLength = 10;
