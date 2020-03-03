@@ -6,7 +6,7 @@ import { TestMessage } from './TestMessage';
 import { SubscriptionLog } from './SubscriptionLog';
 import { Subscription } from '../Subscription';
 import { VirtualAction } from '../scheduler/VirtualTimeScheduler';
-import { AsyncVirtualTimeScheduler } from '../scheduler/AsyncVirtualTimeScheduler';
+import { AsyncVirtualTimeScheduler, AsyncVirtualTimeSchedulerExecutePromisesStrategy } from '../scheduler/AsyncVirtualTimeScheduler';
 import { AsyncScheduler } from '../scheduler/AsyncScheduler';
 import { TestScheduler } from './TestScheduler';
 
@@ -56,8 +56,10 @@ export class AsyncTestScheduler extends AsyncVirtualTimeScheduler {
    *
    * @param assertDeepEqual A function to set up your assertion for your test harness
    */
-  constructor(public assertDeepEqual: (actual: any, expected: any) => boolean | void) {
-    super(VirtualAction, defaultMaxFrame);
+  constructor(public assertDeepEqual: (actual: any, expected: any) => boolean | void,
+              executePromisesMicroTasks: () => Promise<void> = AsyncVirtualTimeSchedulerExecutePromisesStrategy.usingSetImmediate,
+  ) {
+    super(executePromisesMicroTasks, VirtualAction, defaultMaxFrame);
   }
 
   createTime(marbles: string): number {

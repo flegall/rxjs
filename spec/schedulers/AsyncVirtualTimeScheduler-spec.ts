@@ -1,5 +1,10 @@
 import { expect } from 'chai';
-import { SchedulerAction, AsyncVirtualTimeScheduler, VirtualAction } from 'rxjs';
+import {
+  SchedulerAction,
+  AsyncVirtualTimeScheduler,
+  VirtualAction,
+  AsyncVirtualTimeSchedulerExecutePromisesStrategy
+} from 'rxjs';
 
 /** @test {AsyncVirtualTimeScheduler} */
 describe('AsyncVirtualTimeScheduler', () => {
@@ -99,7 +104,7 @@ describe('AsyncVirtualTimeScheduler', () => {
 
   it('should execute only those virtual actions that fall into the maxFrames timespan', function (done: MochaDone) {
     const MAX_FRAMES = 50;
-    const v = new AsyncVirtualTimeScheduler(VirtualAction, MAX_FRAMES);
+    const v = new AsyncVirtualTimeScheduler(AsyncVirtualTimeSchedulerExecutePromisesStrategy.usingSetImmediate, VirtualAction, MAX_FRAMES);
     const messages: string[] = ['first message', 'second message', 'third message'];
 
     const actualMessages: string[] = [];
@@ -120,7 +125,7 @@ describe('AsyncVirtualTimeScheduler', () => {
 
   it('should pick up actions execution where it left off after reaching previous maxFrames limit', function (done: MochaDone) {
     const MAX_FRAMES = 50;
-    const v = new AsyncVirtualTimeScheduler(VirtualAction, MAX_FRAMES);
+    const v = new AsyncVirtualTimeScheduler(AsyncVirtualTimeSchedulerExecutePromisesStrategy.usingSetImmediate, VirtualAction, MAX_FRAMES);
     const messages: string[] = ['first message', 'second message', 'third message'];
 
     const actualMessages: string[] = [];
@@ -238,5 +243,77 @@ describe('AsyncVirtualTimeScheduler', () => {
       expect(invoked).to.deep.equal([1, 2, 3]);
       done();
     });
+  });
+
+  it('should execute promise resolutions using setImmediate', (done: MochaDone) => {
+    const v = new AsyncVirtualTimeScheduler(
+      AsyncVirtualTimeSchedulerExecutePromisesStrategy.usingSetImmediate
+    );
+    const invoked: number[] = [];
+    const invoke: any = (state: number) => {
+      Promise.resolve().then(() => { invoked.push(state); });
+    };
+    v.schedule(invoke, 0, 1);
+    v.schedule(invoke, 0, 2);
+
+    v.flush().then(() => {
+      expect(invoked).to.deep.equal([1, 2]);
+    }).then(() => done(), done);
+  });
+
+  it('should execute promise resolutions using setTimeout', (done: MochaDone) => {
+    const v = new AsyncVirtualTimeScheduler(
+      AsyncVirtualTimeSchedulerExecutePromisesStrategy.usingSetTimeout
+    );
+    const invoked: number[] = [];
+    const invoke: any = (state: number) => {
+      Promise.resolve().then(() => { invoked.push(state); });
+    };
+    v.schedule(invoke, 0, 1);
+    v.schedule(invoke, 0, 2);
+
+    v.flush().then(() => {
+      expect(invoked).to.deep.equal([1, 2]);
+    }).then(() => done(), done);
+  });
+
+  it('should execute promise resolutions using a promises chain', (done: MochaDone) => {
+    const v = new AsyncVirtualTimeScheduler(
+      AsyncVirtualTimeSchedulerExecutePromisesStrategy.usingPromisesChain()
+    );
+    const invoked: number[] = [];
+    const invoke: any = (state: number) => {
+      Promise.resolve()
+        .then(() => { invoked.push(state); });
+    };
+    v.schedule(invoke, 0, 1);
+
+    v.flush().then(() => {
+      expect(invoked).to.deep.equal([1]);
+    }).then(() => done(), done);
+  });
+
+  it('should not execute long promise resolutions using a limited promises chain', (done: MochaDone) => {
+    const v = new AsyncVirtualTimeScheduler(
+      AsyncVirtualTimeSchedulerExecutePromisesStrategy.usingPromisesChain(0)
+    );
+    const invoked: number[] = [];
+    const invoke: any = (state: number) => {
+      let array = [];
+      for (let i = 0; i < 10; i++) {
+        array.push(1);
+      }
+
+      array.reduce(
+        (promise: Promise<number>, value: number) =>
+          promise.then(() => Promise.resolve(value)),
+        Promise.resolve(1)
+      ).then(() => { invoked.push(state); });
+    };
+    v.schedule(invoke, 0, 1);
+
+    v.flush().then(() => {
+      expect(invoked).to.deep.equal([]);
+    }).then(() => done(), done);
   });
 });

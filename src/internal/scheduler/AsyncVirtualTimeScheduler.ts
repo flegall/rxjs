@@ -28,7 +28,8 @@ export class AsyncVirtualTimeScheduler extends AsyncScheduler {
    * @param SchedulerAction The type of Action to initialize when initializing actions during scheduling.
    * @param maxFrames The maximum number of frames to process before stopping. Used to prevent endless flush cycles.
    */
-  constructor(SchedulerAction: typeof AsyncAction = VirtualAction as any,
+  constructor(private executePromisesMicroTasks: () => Promise<void> = AsyncVirtualTimeSchedulerExecutePromisesStrategy.usingSetImmediate,
+              SchedulerAction: typeof AsyncAction = VirtualAction as any,
               public maxFrames: number = Number.POSITIVE_INFINITY) {
     super(SchedulerAction, () => this.frame);
   }
@@ -56,12 +57,49 @@ export class AsyncVirtualTimeScheduler extends AsyncScheduler {
       return Promise.resolve();
     }
   }
-
-  private executePromisesMicroTasks(): Promise<void> {
-    return new Promise(resolve => {
-      setImmediate(() => {
-        resolve();
-      });
-    });
-  }
 }
+
+const executePromisesMicroTasksUsingSetImmediate: () => Promise<void> = () => {
+  const nativeSetImmediate = typeof window !== `undefined` ?
+    (window.setImmediate || undefined) :
+    (global.setImmediate || undefined);
+  return new Promise(resolve => {
+    nativeSetImmediate(() => {
+      resolve();
+    });
+  });
+};
+
+const executePromisesMicroTasksUsingSetTimeout: () => Promise<void> = () => {
+  const nativeSetTimeout = typeof window !== `undefined` ?
+    (window.setTimeout || undefined) :
+    (global.setTimeout || undefined);
+  return new Promise(resolve => {
+    nativeSetTimeout(() => {
+      resolve();
+    }, 0);
+  });
+};
+
+const defaultPromisesChainLength = 10;
+const executePromisesMicroTasksUsingPromisesChain: (promisesChainLength?: number) => () => Promise<void> =
+  (promisesChainLength = defaultPromisesChainLength) => () => {
+    return new Promise(resolve => {
+      let array = [];
+      for (let i = 0; i < promisesChainLength; i++) {
+        array.push(1);
+      }
+
+      array.reduce(
+        (promise: Promise<number>, value: number) =>
+          promise.then(() => Promise.resolve(value)),
+        Promise.resolve(1)
+      ).then(() => resolve());
+    });
+  };
+
+export const AsyncVirtualTimeSchedulerExecutePromisesStrategy = {
+  usingSetImmediate: executePromisesMicroTasksUsingSetImmediate,
+  usingSetTimeout: executePromisesMicroTasksUsingSetTimeout,
+  usingPromisesChain: executePromisesMicroTasksUsingPromisesChain,
+};
