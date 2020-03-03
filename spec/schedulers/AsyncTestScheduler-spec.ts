@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { AsyncScheduler } from 'rxjs/internal/scheduler/AsyncScheduler';
 import { AsyncTestScheduler } from 'rxjs/testing';
 import { Observable, Subject, of, merge, from } from 'rxjs';
-import { delay, debounceTime, concatMap} from 'rxjs/operators';
+import { delay, debounceTime, concatMap, switchMap, startWith} from 'rxjs/operators';
 
 /** @test {AsyncTestScheduler} */
 describe('AsyncTestScheduler', () => {
@@ -247,6 +247,20 @@ describe('AsyncTestScheduler', () => {
       testScheduler.run(async ({ expectObservable} ) => {
         const observable = from(Promise.resolve(42)).pipe(delay(10));
         expectObservable(observable).toBe(' 10ms (x|)', {x: 42});
+      }).then(() => done(), done);
+    });
+
+    it('should allow mixing promises and observables in tests', (done: MochaDone) => {
+      const testScheduler = new AsyncTestScheduler(assertDeepEquals);
+      testScheduler.run(async ({ expectObservable} ) => {
+        const observable = from(Promise.resolve(42)).pipe(
+          delay(10),
+          switchMap(value => from(Promise.resolve(43)).pipe(
+            delay(10),
+            startWith(value)
+          ))
+        );
+        expectObservable(observable).toBe(' 10ms x 9ms (y|)', {x: 42, y: 43});
       }).then(() => done(), done);
     });
   });
